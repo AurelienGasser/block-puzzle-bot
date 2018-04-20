@@ -32,6 +32,8 @@ class Cli(threading.Thread):
             self.hwnd_game = hwnd;
         if 'Windows PowerShell' in win32gui.GetWindowText(hwnd):
             self.hwnd_cli = hwnd;
+        if 'posh~git' in win32gui.GetWindowText(hwnd):
+            self.hwnd_cli = hwnd;
 
     def test(self, x,y):
         pixel = self.gdi.GetPixel(self.wDC,x,y)

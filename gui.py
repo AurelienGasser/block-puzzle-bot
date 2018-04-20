@@ -4,7 +4,7 @@ import win32gui
 import win32api
 import win32con
 import threading
-import inputx
+import cli
 import shared
 import queue
 import pywinauto
