@@ -35,17 +35,6 @@ class Cli(threading.Thread):
         if 'posh~git' in win32gui.GetWindowText(hwnd):
             self.hwnd_cli = hwnd;
 
-    def test(self, x,y):
-        pixel = self.gdi.GetPixel(self.wDC,x,y)
-
-    def testcol(self, x,y):
-        for i in range(0, 30):
-            what = win32gui.ScreenToClient(self.hwnd_game, (x+i, y))
-            pixel = self.gdi.GetPixel(self.wDC, what[0], what[1])
-            r = pixel & 0x0000ff
-            g = (pixel & 0x00ff00) >> 8
-            b = (pixel & 0xff0000) >> 16
-
     def get_bmp():
         _ = wx.App()  # Need to create an App instance before doing anything
         screen = wx.ScreenDC()
@@ -61,6 +50,9 @@ class Cli(threading.Thread):
         del mem  # Release bitmap
         
         return bmp
+
+    def test(self, x,y):
+        pixel = self.gdi.GetPixel(self.wDC,x,y)
 
     def test_pixel(self, args):    
         _ = wx.App()  # Need to create an App instance before doing anything
@@ -86,19 +78,12 @@ class Cli(threading.Thread):
 
         bmp.SaveFile('screenshot.png', wx.BITMAP_TYPE_PNG)
 
-    def SetForegroundWindow(self, hwnd):
-        return
-        #win32gui.SetForegroundWindow(hwnd)
-
     def focus(self):
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
         pywinauto.win32functions.SetForegroundWindow(self.hwnd_cli)
 
-    def init_game_window(self, args = None):
-        self.send_gui('init_game_window')
-
-    def init(self, args = None):
+    def init(self):
         win32gui.EnumWindows(self.getWindows, None)
         self.wDC = win32gui.GetWindowDC(self.hwnd_game)
         win32gui.SetForegroundWindow(self.hwnd_game)
@@ -108,22 +93,41 @@ class Cli(threading.Thread):
         command = command + ' ' + ' '.join(str(e) for e in kargs)
         shared.messages.put(command)
 
-    def startx(self, args = None):
-        self.click(211, 370)
+    # m
 
-    def reset(self, args = None):
-        self.click(372, 86)
+    def mouse_to_win32(self, pos):
+        return (int(pos[0] * 2.5), int(pos[1] * 2.5))
 
-    def back(self, args = None):
-        self.click(33, 801)
+    def drag_m(self, x1,y1,x2,y2):
+        (x1, y1) = self.mouse_to_win32((x1, y1))
+        (x2, y2) = self.mouse_to_win32((x2, y2))
+        self.drag(x1, y1, x2, y2)
 
-    def move_piece(self, slot, x, y):
-        self.drag(84, 633, x, y)
+    def move_piece_m(self, slot, x, y):
+        self.drag_m(84, 633, x, y)
+
+    def click_m(self, x, y):
+        coord = self.mouse_to_win32((x, y))
+        self.click(coord[0], coord[1])
+
+    # Commands
+
+    def cmd_start(self, args = None):
+        self.click_m(211, 370)
+
+    def cmd_reset(self, args = None):
+        self.click_m(372, 86)
+
+    def cmd_back(self, args = None):
+        self.click_m(33, 801)
+
+    def cmd_init(self, args = None):
+        self.init()
 
     def cmd_move_piece(self, args = None):      
         x = int(args[0])
         y = int(args[1])
-        self.move_piece(1, x, y)
+        self.move_piece_m(1, x, y)
 
     def cmd_exit(self, args = None):
         self.send_gui('exit')
@@ -132,15 +136,18 @@ class Cli(threading.Thread):
         split = command.split()
         command = 'cmd_' + split[0]
         args = split[1:]
-        method = getattr(self, command, lambda: "Invalid cli command")
-        #if method:
         try:
-            method(args)
-        except Exception as e: 
-            print("cli command threw an exception")
-        self.focus()
-        #else:
-         #   print("command not found")
+            method = getattr(self, command)
+            try:
+                method(args)
+            except Exception as e: 
+                print("cli command threw an exception")
+                print(e)
+            self.focus()
+        except Exception as e:
+           print("command not found")
+
+    # main
 
     def run(self):
         self.init()
