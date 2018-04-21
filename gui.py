@@ -13,9 +13,11 @@ class Gui():
     def __init__(self):
         self.WIDTH = 500
         self.HEIGHT = 500
-        self.LINEWIDTH = 1
+        self.X = 0
+        self.Y = 0
+        self.LINEWIDTH = 2
         self.TRANSCOLOUR = 'blue'
-        self.title = 'Virtual whiteboardot'
+        self.title = 'bot-gui'
         self.old = ()
         self.hwnd_tk = 0
         self.hwnd_game = 0
@@ -25,6 +27,11 @@ class Gui():
     def cmd_exit(self, args = None):
         self.running = 0;
 
+    def cmd_cross_m(self, args = None):
+        x = int(args[0])
+        y = int(args[1])
+        self.cross_m((x, y))
+
     def run_command(self, command):
         split = command.split()
         command = "cmd_" + split[0]
@@ -32,25 +39,45 @@ class Gui():
         method = getattr(self, command, lambda: "Invalid gui command")
         method(args)
 
+    def mouse_to_win32(self, pos):
+        xpad = 3
+        ypad = -68
+        return (int(pos[0] * 2.5) + xpad, int(pos[1] * 2.5) + ypad)
+
+    def cross(self, pos):
+        size = 10
+        lw = 4
+        self.canvas.create_line(pos[0] - size, pos[1] - size, pos[0] + size, pos[1] + size, width=lw)
+        self.canvas.create_line(pos[0] - size, pos[1] + size, pos[0] + size, pos[1] - size, width=lw)
+
+    def cross_m(self, pos):
+        self.cross(self.mouse_to_win32(pos))
+
     def run(self):
+        win32gui.EnumWindows(self.enumHandler, None)
+
+        rect = win32gui.GetWindowRect(self.hwnd_game)
+
+        self.X = rect[0]
+        self.Y = rect[1]
+        self.WIDTH = rect[2] - self.X
+        self.HEIGHT = rect[3] - self.Y
         self.tk = Tk()
         self.tk.title(self.title)
         self.tk.lift()
         self.tk.wm_attributes("-topmost", True)
         self.tk.wm_attributes("-transparentcolor", self.TRANSCOLOUR)
+        self.tk.geometry('%dx%d+%d+%d' % (self.WIDTH, self.HEIGHT, self.X - 20, self.Y))
 
         self.canvas = Canvas(self.tk, width=self.WIDTH, height=self.HEIGHT)
         self.canvas.pack()
         self.canvas.config(cursor='tcross')
-        self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, fill=self.TRANSCOLOUR, outline=self.TRANSCOLOUR)
+        self.canvas.create_rectangle(self.X, self.Y, self.WIDTH, self.HEIGHT, fill=self.TRANSCOLOUR, outline=self.TRANSCOLOUR)
 
         win32gui.EnumWindows(self.enumHandler, None)
 
         self.tk.bind('<Visibility>', self.putOnTop)
         self.tk.focus()
-
-        if self.hwnd_tk != 0:
-            self.canvas.create_line(10, 10, 20, 20, width=self.LINEWIDTH)
 
         self.running = 1
 

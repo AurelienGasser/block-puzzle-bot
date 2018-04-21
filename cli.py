@@ -129,6 +129,9 @@ class Cli(threading.Thread):
         y = int(args[1])
         self.move_piece_m(1, x, y)
 
+    def cmd_cross_m(self, args = None):
+        self.send_gui('cross_m', args[0], args[1])
+
     def cmd_exit(self, args = None):
         self.send_gui('exit')
 
